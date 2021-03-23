@@ -5,8 +5,10 @@ const process = require('process');
 const path = require('path');
 // eslint-disable-next-line import/no-extraneous-dependencies, node/no-unpublished-require
 const log = require('@vladmandic/pilogger');
-// eslint-disable-next-line import/no-extraneous-dependencies, node/no-unpublished-require
+// eslint-disable-next-line import/no-extraneous-dependencies, node/no-unpublished-require, no-unused-vars
 const tf = require('@tensorflow/tfjs-node');
+// eslint-disable-next-line import/no-extraneous-dependencies, node/no-unpublished-require
+const canvas = require('canvas');
 const faceapi = require('../dist/face-api.node.js'); // this is equivalent to '@vladmandic/faceapi'
 
 const modelPathRoot = '../model';
@@ -15,14 +17,12 @@ const minScore = 0.1;
 const maxResults = 5;
 let optionsSSDMobileNet;
 
-async function image(img) {
-  const buffer = fs.readFileSync(img);
-  const decoded = tf.node.decodeImage(buffer);
-  const casted = decoded.toFloat();
-  const result = casted.expandDims(0);
-  decoded.dispose();
-  casted.dispose();
-  return result;
+async function image(input) {
+  const img = canvas.loadImage(input);
+  const c = canvas.createCanvas(img.width, img.height);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, img.width, img.height);
+  return c;
 }
 
 async function detect(tensor) {
@@ -38,6 +38,8 @@ async function detect(tensor) {
 async function main() {
   log.header();
   log.info('FaceAPI single-process test');
+
+  faceapi.env.monkeyPatch({ Canvas: canvas.Canvas, Image: canvas.Image, ImageData: canvas.ImageData });
 
   await faceapi.tf.setBackend('tensorflow');
   await faceapi.tf.enableProdMode();
@@ -63,6 +65,9 @@ async function main() {
       const tensor = await image(path.join(imgPathRoot, img));
       const result = await detect(tensor);
       log.data('Image:', img, 'Detected faces:', result.length);
+      for (const i of result) {
+        log.data('Gender:', Math.round(100 * i.genderProbability), 'probability', i.gender, 'with age', Math.round(10 * i.age) / 10);
+      }
       tensor.dispose();
     }
     const t1 = process.hrtime.bigint();
@@ -74,7 +79,7 @@ async function main() {
       const result = await detect(tensor);
       log.data('Image:', param, 'Detected faces:', result.length);
       for (const i of result) {
-        log.data('Gender:', i.genderProbability, i.gender, 'Age:', i.age);
+        log.data('Gender:', Math.round(100 * i.genderProbability), 'probability', i.gender, 'with age', Math.round(10 * i.age) / 10);
       }
       tensor.dispose();
     }
