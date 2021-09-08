@@ -16,14 +16,14 @@ export declare class AgeGenderNet extends NeuralNetwork<NetParams> {
     loadClassifierParams(weights: Float32Array): void;
     extractClassifierParams(weights: Float32Array): {
         params: NetParams;
-        paramMappings: import("../common/types").ParamMapping[];
+        paramMappings: import("../common").ParamMapping[];
     };
     protected extractParamsFromWeightMap(weightMap: tf.NamedTensorMap): {
         params: NetParams;
-        paramMappings: import("../common/types").ParamMapping[];
+        paramMappings: import("../common").ParamMapping[];
     };
     protected extractParams(weights: Float32Array): {
         params: NetParams;
-        paramMappings: import("../common/types").ParamMapping[];
+        paramMappings: import("../common").ParamMapping[];
     };
 }

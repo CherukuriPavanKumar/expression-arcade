@@ -9,10 +9,10 @@ export declare class TinyFaceFeatureExtractor extends NeuralNetwork<TinyFaceFeat
     protected getDefaultModelName(): string;
     protected extractParamsFromWeightMap(weightMap: tf.NamedTensorMap): {
         params: TinyFaceFeatureExtractorParams;
-        paramMappings: import("../common/types").ParamMapping[];
+        paramMappings: import("../common").ParamMapping[];
     };
     protected extractParams(weights: Float32Array): {
         params: TinyFaceFeatureExtractorParams;
-        paramMappings: import("../common/types").ParamMapping[];
+        paramMappings: import("../common").ParamMapping[];
     };
 }

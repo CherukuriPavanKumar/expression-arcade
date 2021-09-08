@@ -10,10 +10,10 @@ export declare class FaceRecognitionNet extends NeuralNetwork<NetParams> {
     protected getDefaultModelName(): string;
     protected extractParamsFromWeightMap(weightMap: tf.NamedTensorMap): {
         params: NetParams;
-        paramMappings: import("../common/types").ParamMapping[];
+        paramMappings: import("../common").ParamMapping[];
     };
     protected extractParams(weights: Float32Array): {
         params: NetParams;
-        paramMappings: import("../common/types").ParamMapping[];
+        paramMappings: import("../common").ParamMapping[];
     };
 }
