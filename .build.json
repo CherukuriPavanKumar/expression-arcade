@@ -10,7 +10,7 @@
     "development": ["serve", "watch", "compile"]
   },
   "clean": {
-    "locations": ["dist/*", "types/src/*", "typedoc/*"]
+    "locations": ["dist/*", "typedoc/*", "types/lib/src"]
   },
   "lint": {
     "locations": [ "src/**" ],
@@ -31,6 +31,8 @@
   "build": {
     "global": {
       "target": "es2018",
+      "treeShaking": true,
+      "ignoreAnnotations": true,
       "sourcemap": false,
       "banner": { "js": "/*\n  Face-API\n  homepage: <https://github.com/vladmandic/face-api>\n  author: <https://github.com/vladmandic>'\n*/\n" }
     },
@@ -72,8 +74,7 @@
         "platform": "browser",
         "format": "esm",
         "input": "src/tfjs/tf-version.ts",
-        "output": "dist/tfjs.version.js",
-        "external": ["fs", "os", "buffer", "util"]
+        "output": "dist/tfjs.version.js"
       },
       {
         "name": "tfjs/browser/esm/nobundle",
@@ -81,25 +82,22 @@
         "format": "esm",
         "input": "src/tfjs/tf-browser.ts",
         "output": "dist/tfjs.esm.js",
-        "external": ["fs","buffer","util","os","@tensorflow"]
+        "external": ["@tensorflow"]
       },
       {
         "name": "faceapi/browser/esm/nobundle",
         "platform": "browser",
         "format": "esm",
-        "sourcemap": true,
         "input": "src/index.ts",
-        "output": "dist/face-api.esm-nobundle.js",
-        "external": ["fs","buffer","util","os","@tensorflow","tfjs.esm.js"]
+        "external": ["@tensorflow"],
+        "output": "dist/face-api.esm-nobundle.js"
       },
       {
         "name": "tfjs/browser/esm/bundle",
         "platform": "browser",
         "format": "esm",
-        "sourcemap": true,
-        "input": "src/tfjs/tf-browser.ts",
-        "output": "dist/tfjs.esm.js",
-        "external": ["fs","buffer","util","os"]
+        "input": "src/tfjs/tf-custom.ts",
+        "output": "dist/tfjs.esm.js"
       },
       {
         "name": "faceapi/browser/iife/bundle",
@@ -109,7 +107,7 @@
         "minify": true,
         "input": "src/index.ts",
         "output": "dist/face-api.js",
-        "external": ["fs","buffer","util","os"]
+        "external": ["@tensorflow"]
       },
       {
         "name": "faceapi/browser/esm/bundle",
@@ -118,9 +116,9 @@
         "sourcemap": true,
         "input": "src/index.ts",
         "output": "dist/face-api.esm.js",
-        "external": ["fs","buffer","util","os"],
-        "typings": "types",
-        "typedoc": "typedoc"
+        "typings": "types/lib",
+        "typedoc": "typedoc",
+        "external": ["@tensorflow"]
       }
     ]
   },
