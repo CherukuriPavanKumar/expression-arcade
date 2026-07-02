@@ -118,6 +118,28 @@
         background: radial-gradient(circle, rgba(56,189,248,0.2) 0%, rgba(0,0,0,0) 70%);
         pointer-events: none; opacity: 0; z-index: 15;
       }
+      
+      #countdown-overlay {
+        display: none;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        justify-content: center; align-items: center;
+        font-size: 160px; font-weight: 800; z-index: 30;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        animation: pulseMatch 0.8s ease-in-out infinite;
+      }
+      
+      #expression-label {
+        font-size: 16px; letter-spacing: 3px; text-transform: uppercase;
+        color: #38bdf8; font-weight: 600; margin-top: 4px;
+      }
+      
+      #detected-expression {
+        position: absolute; bottom: 30px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 18px; font-weight: 600; color: #94a3b8;
+        background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 999px;
+      }
     </style>
   </head>
   <body>
@@ -133,6 +155,7 @@
         <div class="target-container">
           <div class="progress-ring" id="progress-ring"></div>
           <div id="target-emoji">😀</div>
+          <div id="expression-label">HAPPY</div>
         </div>
         
         <div class="glass-panel stat-box">
@@ -142,6 +165,7 @@
       </div>
       
       <div id="combo-text">2x COMBO!</div>
+      <div id="detected-expression">Waiting for face...</div>
 
       <!-- Start Screen -->
       <div id="start-screen" class="glass-panel menu-screen">
@@ -157,6 +181,7 @@
         <button id="restart-btn" class="btn">Play Again</button>
       </div>
     </div>
+    <div id="countdown-overlay"></div>
     <video id="video" playsinline class="video"></video>
     <canvas id="canvas" class="canvas" style="position: fixed; top: 0; left: 0; z-index: 10"></canvas>
     <div id="log" style="overflow-y: scroll; height: 16.5rem"></div>

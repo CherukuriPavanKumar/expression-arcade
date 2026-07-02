@@ -18,7 +18,7 @@ const emojiMap = {
   '😐': 'neutral',
   '😀': 'happy',
   '😲': 'surprised',
-  '😠': 'angry'
+  '😢': 'sad'
 };
 let gameState = 'start'; // start, playing, gameover
 let score = 0;
@@ -32,14 +32,19 @@ let comboStreak = 0;
 
 function pickNewEmoji() {
   const emojis = Object.keys(emojiMap);
-  targetEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  let newEmoji;
+  do {
+    newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  } while (newEmoji === targetEmoji && emojis.length > 1);
+  targetEmoji = newEmoji;
   targetExpression = emojiMap[targetEmoji];
   const el = document.getElementById('target-emoji');
   if (el) el.innerText = targetEmoji;
+  const label = document.getElementById('expression-label');
+  if (label) label.innerText = targetExpression.toUpperCase();
 }
 
 function startGame() {
-  gameState = 'playing';
   score = 0;
   timeLeft = 30;
   comboStreak = 0;
@@ -48,9 +53,35 @@ function startGame() {
   const startScreen = document.getElementById('start-screen');
   const gameOverScreen = document.getElementById('game-over-screen');
   const hud = document.getElementById('hud');
+  const countdownEl = document.getElementById('countdown-overlay');
   
   if (startScreen) startScreen.style.display = 'none';
   if (gameOverScreen) gameOverScreen.style.display = 'none';
+  
+  // Show 3-2-1 countdown
+  if (countdownEl) {
+    countdownEl.style.display = 'flex';
+    let count = 3;
+    countdownEl.innerText = count;
+    const countInterval = setInterval(() => {
+      count--;
+      if (count > 0) {
+        countdownEl.innerText = count;
+      } else {
+        clearInterval(countInterval);
+        countdownEl.style.display = 'none';
+        actuallyStartGame();
+      }
+    }, 800);
+  } else {
+    actuallyStartGame();
+  }
+}
+
+function actuallyStartGame() {
+  gameState = 'playing';
+  
+  const hud = document.getElementById('hud');
   if (hud) hud.style.display = 'flex';
   
   const scoreEl = document.getElementById('score');
@@ -157,7 +188,11 @@ async function detectVideo(video, canvas) {
         const now = performance.now();
         const progressRing = document.getElementById('progress-ring');
         
-        if (currentExpression === targetExpression && probability > 0.7) {
+        // Show live detected expression
+        const detectedEl = document.getElementById('detected-expression');
+        if (detectedEl) detectedEl.innerText = `${currentExpression} (${Math.round(probability * 100)}%)`;
+        
+        if (currentExpression === targetExpression && probability > 0.6) {
           if (holdStartTime === 0) {
             holdStartTime = now;
           }
