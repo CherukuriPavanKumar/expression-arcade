@@ -44,7 +44,27 @@ function pickNewEmoji() {
   if (label) label.innerText = targetExpression.toUpperCase();
 }
 
-function startGame() {
+async function startGame() {
+  const startBtn = document.getElementById('start-btn');
+  if (startBtn) {
+    startBtn.innerText = 'Starting Camera...';
+    startBtn.disabled = true;
+  }
+
+  // Request camera on explicit user interaction
+  const video = document.getElementById('video');
+  if (!video.srcObject) {
+    const cameraReady = await setupCamera();
+    if (!cameraReady) {
+      alert("Camera permission is required to play! Please allow camera access in your browser settings and try again.");
+      if (startBtn) {
+        startBtn.innerText = 'Start Game';
+        startBtn.disabled = false;
+      }
+      return;
+    }
+  }
+
   score = 0;
   timeLeft = 30;
   comboStreak = 0;
@@ -371,9 +391,8 @@ async function main() {
     log(`Version: FaceAPI ${str(faceapi?.version || '(not loaded)')} TensorFlow/JS ${str(faceapi.tf?.version_core || '(not loaded)')} Backend: ${str(faceapi.tf?.getBackend() || '(not loaded)')}`);
 
     await setupFaceAPI();
-    await setupCamera();
-
-    // Models and camera ready — enable the start button
+    
+    // Models ready — enable the start button (camera will be requested on click)
     if (startBtn) {
       startBtn.innerText = 'Start Game';
       startBtn.disabled = false;
