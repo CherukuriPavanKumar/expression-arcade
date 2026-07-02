@@ -17,11 +17,8 @@ let optionsSSDMobileNet;
 const emojiMap = {
   '😐': 'neutral',
   '😀': 'happy',
-  '😢': 'sad',
-  '😠': 'angry',
-  '😨': 'fearful',
-  '🤢': 'disgusted',
-  '😲': 'surprised'
+  '😲': 'surprised',
+  '😠': 'angry'
 };
 let gameState = 'start'; // start, playing, gameover
 let score = 0;
