@@ -9,27 +9,152 @@
     <meta name="description" content="FaceAPI: AI-powered Face Detection, Description & Recognition for Browser and NodeJS using Tensorflow/JS; Author: Vladimir Mandic <https://github.com/vladmandic>">
     <meta name="msapplication-tooltip" content="FaceAPI: AI-powered Face Detection, Description & Recognition for Browser and NodeJS using Tensorflow/JS; Author: Vladimir Mandic <https://github.com/vladmandic>">
     <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="./webcam.js" type="module"></script>
+    <style>
+      body { font-family: 'Outfit', sans-serif; background: #0f172a; color: white; margin: 0; overflow: hidden; }
+      
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      }
+      
+      .hud-container {
+        display: none;
+        width: 100%;
+        padding: 20px 40px;
+        box-sizing: border-box;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+      }
+      
+      .stat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 20px;
+        min-width: 100px;
+      }
+      
+      .stat-label { font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; font-weight: 600; }
+      .stat-value { font-size: 32px; font-weight: 800; color: #f8fafc; }
+      
+      .target-container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      #target-emoji {
+        font-size: 80px;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      
+      .progress-ring {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 120px; height: 120px;
+        border-radius: 50%;
+        border: 6px solid transparent;
+        border-top-color: #38bdf8;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      
+      .menu-screen {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: auto;
+        padding: 50px 60px;
+        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      
+      h1 { font-size: 42px; margin: 0 0 10px 0; font-weight: 800; background: -webkit-linear-gradient(45deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+      p { font-size: 18px; color: #cbd5e1; margin-bottom: 40px; }
+      
+      .btn {
+        font-size: 20px; font-weight: 800; font-family: 'Outfit', sans-serif;
+        padding: 16px 40px; cursor: pointer; border: none; border-radius: 999px;
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        color: white;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+      }
+      
+      .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6); }
+      .btn:active { transform: translateY(1px); }
+      
+      @keyframes popIn {
+        0% { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      }
+      
+      @keyframes pulseMatch {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.4); }
+        100% { transform: scale(1); }
+      }
+      
+      #combo-text {
+        position: absolute; right: 20px; top: 100px;
+        font-size: 24px; font-weight: 800; color: #f43f5e;
+        opacity: 0; transition: opacity 0.3s, transform 0.3s;
+        text-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+      }
+      
+      #flash-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle, rgba(56,189,248,0.2) 0%, rgba(0,0,0,0) 70%);
+        pointer-events: none; opacity: 0; z-index: 15;
+      }
+    </style>
   </head>
-  <body style="font-family: monospace; background: black; color: white; font-size: 16px; line-height: 22px; margin: 0; overflow: hidden">
+  <body>
+    <div id="flash-overlay"></div>
     <div id="game-ui" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; display: flex; flex-direction: column; align-items: center;">
       <!-- HUD -->
-      <div id="hud" style="display: none; width: 100%; padding: 20px; box-sizing: border-box; justify-content: space-between; font-size: 24px; font-weight: bold; background: rgba(0,0,0,0.5);">
-        <div>Time: <span id="time-left">30</span>s</div>
-        <div id="target-emoji" style="font-size: 64px;">😀</div>
-        <div>Score: <span id="score">0</span></div>
+      <div id="hud" class="hud-container">
+        <div class="glass-panel stat-box">
+          <div class="stat-label">Time</div>
+          <div class="stat-value" id="time-left">30</div>
+        </div>
+        
+        <div class="target-container">
+          <div class="progress-ring" id="progress-ring"></div>
+          <div id="target-emoji">😀</div>
+        </div>
+        
+        <div class="glass-panel stat-box">
+          <div class="stat-label">Score</div>
+          <div class="stat-value" id="score">0</div>
+        </div>
       </div>
+      
+      <div id="combo-text">2x COMBO!</div>
+
       <!-- Start Screen -->
-      <div id="start-screen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: auto; background: rgba(0,0,0,0.8); padding: 40px; border-radius: 10px;">
-        <h1 style="font-size: 32px; margin-bottom: 20px;">Expression Recreation Game</h1>
-        <p style="margin-bottom: 30px;">Match your facial expression to the emoji!</p>
-        <button id="start-btn" style="font-size: 24px; padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; background: deepskyblue; color: white; font-family: monospace; font-weight: bold;">Start Game</button>
+      <div id="start-screen" class="glass-panel menu-screen">
+        <h1>Emoji Arcade</h1>
+        <p>Match your facial expression to the emoji!</p>
+        <button id="start-btn" class="btn">Start Game</button>
       </div>
+
       <!-- Game Over Screen -->
-      <div id="game-over-screen" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: auto; background: rgba(0,0,0,0.8); padding: 40px; border-radius: 10px;">
-        <h1 style="font-size: 48px; margin-bottom: 20px;">Time's Up!</h1>
-        <p style="font-size: 24px; margin-bottom: 30px;">Final Score: <span id="final-score">0</span></p>
-        <button id="restart-btn" style="font-size: 24px; padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; background: deepskyblue; color: white; font-family: monospace; font-weight: bold;">Play Again</button>
+      <div id="game-over-screen" class="glass-panel menu-screen" style="display: none;">
+        <h1>Time's Up!</h1>
+        <p>Final Score: <span id="final-score" style="font-weight: 800; color: white;">0</span></p>
+        <button id="restart-btn" class="btn">Play Again</button>
       </div>
     </div>
     <video id="video" playsinline class="video"></video>
