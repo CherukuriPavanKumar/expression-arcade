@@ -1,7 +1,7 @@
 {
   "buildCommand": "",
   "outputDirectory": ".",
-  "rewrites": [
-    { "source": "/", "destination": "/demo/webcam.html" }
+  "redirects": [
+    { "source": "/", "destination": "/demo/webcam.html", "permanent": false }
   ]
 }
