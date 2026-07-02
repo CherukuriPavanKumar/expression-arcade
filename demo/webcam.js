@@ -30,6 +30,8 @@ let targetEmoji = '';
 let targetExpression = '';
 let gameInterval;
 let lastMatchTime = 0;
+let holdStartTime = 0;
+let comboStreak = 0;
 
 function pickNewEmoji() {
   const emojis = Object.keys(emojiMap);
@@ -43,6 +45,8 @@ function startGame() {
   gameState = 'playing';
   score = 0;
   timeLeft = 30;
+  comboStreak = 0;
+  holdStartTime = 0;
   
   const startScreen = document.getElementById('start-screen');
   const gameOverScreen = document.getElementById('game-over-screen');
@@ -154,21 +158,78 @@ async function detectVideo(video, canvas) {
         const probability = expression[0][1];
         
         const now = performance.now();
-        if (currentExpression === targetExpression && probability > 0.7 && now - lastMatchTime > 1000) {
-          score++;
-          const scoreEl = document.getElementById('score');
-          if (scoreEl) scoreEl.innerText = score;
-          lastMatchTime = now;
-          pickNewEmoji();
+        const progressRing = document.getElementById('progress-ring');
+        
+        if (currentExpression === targetExpression && probability > 0.7) {
+          if (holdStartTime === 0) {
+            holdStartTime = now;
+          }
           
-          // Visual feedback on success
-          const targetEmojiEl = document.getElementById('target-emoji');
-          if (targetEmojiEl) {
-            targetEmojiEl.style.transform = 'scale(1.5)';
-            targetEmojiEl.style.transition = 'transform 0.2s';
-            setTimeout(() => {
-              targetEmojiEl.style.transform = 'scale(1)';
-            }, 200);
+          const holdDuration = now - holdStartTime;
+          const requiredHold = 500; // 0.5s hold required
+          
+          // update progress ring
+          if (progressRing) {
+            progressRing.style.opacity = '1';
+            const progress = Math.min(holdDuration / requiredHold, 1);
+            progressRing.style.transform = `translate(-50%, -50%) scale(${0.8 + (progress * 0.2)})`;
+          }
+          
+          if (holdDuration >= requiredHold) {
+            // Match successful
+            holdStartTime = 0; // reset hold
+            if (progressRing) progressRing.style.opacity = '0';
+            
+            // Combo logic: if within 3s of last match
+            if (lastMatchTime > 0 && now - lastMatchTime < 3000) {
+              comboStreak++;
+            } else {
+              comboStreak = 0;
+            }
+            
+            const pointsAwarded = 1 + comboStreak;
+            score += pointsAwarded;
+            
+            const scoreEl = document.getElementById('score');
+            if (scoreEl) scoreEl.innerText = score;
+            lastMatchTime = now;
+            
+            pickNewEmoji();
+            
+            // Visual feedback on success
+            const targetEmojiEl = document.getElementById('target-emoji');
+            if (targetEmojiEl) {
+              targetEmojiEl.style.animation = 'none';
+              void targetEmojiEl.offsetWidth; // trigger reflow
+              targetEmojiEl.style.animation = 'pulseMatch 0.4s ease-out';
+            }
+            
+            const flash = document.getElementById('flash-overlay');
+            if (flash) {
+              flash.style.opacity = '1';
+              flash.style.transition = 'opacity 0.3s ease-out';
+              setTimeout(() => { flash.style.opacity = '0'; }, 300);
+            }
+            
+            if (comboStreak > 0) {
+              const comboText = document.getElementById('combo-text');
+              if (comboText) {
+                comboText.innerText = `${comboStreak + 1}x COMBO!`;
+                comboText.style.opacity = '1';
+                comboText.style.transform = 'translateY(-20px)';
+                setTimeout(() => { 
+                  comboText.style.opacity = '0'; 
+                  comboText.style.transform = 'translateY(0)';
+                }, 1000);
+              }
+            }
+          }
+        } else {
+          // Reset hold if wrong expression
+          holdStartTime = 0;
+          if (progressRing) {
+            progressRing.style.opacity = '0';
+            progressRing.style.transform = 'translate(-50%, -50%) scale(0.8)';
           }
         }
       }
