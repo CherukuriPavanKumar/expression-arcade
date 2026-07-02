@@ -345,34 +345,46 @@ async function setupFaceAPI() {
 }
 
 async function main() {
-  // initialize tfjs
-  log('FaceAPI WebCam Test');
-
-  // if you want to use wasm backend location for wasm binaries must be specified
-  // await faceapi.tf?.setWasmPaths(`https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@${faceapi.tf.version_core}/dist/`);
-  // await faceapi.tf?.setBackend('wasm');
-  // log(`WASM SIMD: ${await faceapi.tf?.env().getAsync('WASM_HAS_SIMD_SUPPORT')} Threads: ${await faceapi.tf?.env().getAsync('WASM_HAS_MULTITHREAD_SUPPORT') ? 'Multi' : 'Single'}`);
-
-  // default is webgl backend
-  await faceapi.tf.setBackend('webgl');
-  await faceapi.tf.ready();
-
-  // tfjs optimizations
-  if (faceapi.tf?.env().flagRegistry.CANVAS2D_WILL_READ_FREQUENTLY) faceapi.tf.env().set('CANVAS2D_WILL_READ_FREQUENTLY', true);
-  if (faceapi.tf?.env().flagRegistry.WEBGL_EXP_CONV) faceapi.tf.env().set('WEBGL_EXP_CONV', true);
-  if (faceapi.tf?.env().flagRegistry.WEBGL_EXP_CONV) faceapi.tf.env().set('WEBGL_EXP_CONV', true);
-
-  // check version
-  log(`Version: FaceAPI ${str(faceapi?.version || '(not loaded)')} TensorFlow/JS ${str(faceapi.tf?.version_core || '(not loaded)')} Backend: ${str(faceapi.tf?.getBackend() || '(not loaded)')}`);
-
-  await setupFaceAPI();
-  await setupCamera();
-  
-  // hook up buttons
+  // Hook up buttons IMMEDIATELY so they're always clickable
   const startBtn = document.getElementById('start-btn');
   if (startBtn) startBtn.addEventListener('click', startGame);
   const restartBtn = document.getElementById('restart-btn');
   if (restartBtn) restartBtn.addEventListener('click', startGame);
+
+  // Show loading state on start button
+  if (startBtn) startBtn.innerText = 'Loading Models...';
+  if (startBtn) startBtn.disabled = true;
+
+  try {
+    // initialize tfjs
+    log('FaceAPI WebCam Test');
+
+    // default is webgl backend
+    await faceapi.tf.setBackend('webgl');
+    await faceapi.tf.ready();
+
+    // tfjs optimizations
+    if (faceapi.tf?.env().flagRegistry.CANVAS2D_WILL_READ_FREQUENTLY) faceapi.tf.env().set('CANVAS2D_WILL_READ_FREQUENTLY', true);
+    if (faceapi.tf?.env().flagRegistry.WEBGL_EXP_CONV) faceapi.tf.env().set('WEBGL_EXP_CONV', true);
+
+    // check version
+    log(`Version: FaceAPI ${str(faceapi?.version || '(not loaded)')} TensorFlow/JS ${str(faceapi.tf?.version_core || '(not loaded)')} Backend: ${str(faceapi.tf?.getBackend() || '(not loaded)')}`);
+
+    await setupFaceAPI();
+    await setupCamera();
+
+    // Models and camera ready — enable the start button
+    if (startBtn) {
+      startBtn.innerText = 'Start Game';
+      startBtn.disabled = false;
+    }
+  } catch (err) {
+    log(`Initialization Error: ${err}`);
+    if (startBtn) {
+      startBtn.innerText = 'Error - Retry';
+      startBtn.disabled = false;
+    }
+  }
 }
 
 // start processing as soon as page is loaded
