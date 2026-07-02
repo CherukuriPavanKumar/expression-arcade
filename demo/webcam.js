@@ -13,6 +13,76 @@ const minScore = 0.2; // minimum score
 const maxResults = 5; // maximum number of results to return
 let optionsSSDMobileNet;
 
+// game state
+const emojiMap = {
+  '😐': 'neutral',
+  '😀': 'happy',
+  '😢': 'sad',
+  '😠': 'angry',
+  '😨': 'fearful',
+  '🤢': 'disgusted',
+  '😲': 'surprised'
+};
+let gameState = 'start'; // start, playing, gameover
+let score = 0;
+let timeLeft = 30;
+let targetEmoji = '';
+let targetExpression = '';
+let gameInterval;
+let lastMatchTime = 0;
+
+function pickNewEmoji() {
+  const emojis = Object.keys(emojiMap);
+  targetEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  targetExpression = emojiMap[targetEmoji];
+  const el = document.getElementById('target-emoji');
+  if (el) el.innerText = targetEmoji;
+}
+
+function startGame() {
+  gameState = 'playing';
+  score = 0;
+  timeLeft = 30;
+  
+  const startScreen = document.getElementById('start-screen');
+  const gameOverScreen = document.getElementById('game-over-screen');
+  const hud = document.getElementById('hud');
+  
+  if (startScreen) startScreen.style.display = 'none';
+  if (gameOverScreen) gameOverScreen.style.display = 'none';
+  if (hud) hud.style.display = 'flex';
+  
+  const scoreEl = document.getElementById('score');
+  if (scoreEl) scoreEl.innerText = score;
+  const timeEl = document.getElementById('time-left');
+  if (timeEl) timeEl.innerText = timeLeft;
+  
+  pickNewEmoji();
+  
+  gameInterval = setInterval(() => {
+    timeLeft--;
+    const tEl = document.getElementById('time-left');
+    if (tEl) tEl.innerText = timeLeft;
+    if (timeLeft <= 0) {
+      endGame();
+    }
+  }, 1000);
+}
+
+function endGame() {
+  gameState = 'gameover';
+  clearInterval(gameInterval);
+  
+  const hud = document.getElementById('hud');
+  const gameOverScreen = document.getElementById('game-over-screen');
+  
+  if (hud) hud.style.display = 'none';
+  if (gameOverScreen) gameOverScreen.style.display = 'block';
+  
+  const finalScoreEl = document.getElementById('final-score');
+  if (finalScoreEl) finalScoreEl.innerText = score;
+}
+
 // helper function to pretty-print json object to string
 function str(json) {
   let text = '<font color="lightblue">';
@@ -50,15 +120,9 @@ function drawFaces(canvas, data, fps) {
     // draw text labels
     const expression = Object.entries(person.expressions).sort((a, b) => b[1] - a[1]);
     ctx.fillStyle = 'black';
-    ctx.fillText(`gender: ${Math.round(100 * person.genderProbability)}% ${person.gender}`, person.detection.box.x, person.detection.box.y - 59);
-    ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 41);
-    ctx.fillText(`age: ${Math.round(person.age)} years`, person.detection.box.x, person.detection.box.y - 23);
-    ctx.fillText(`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`, person.detection.box.x, person.detection.box.y - 5);
+    ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 5);
     ctx.fillStyle = 'lightblue';
-    ctx.fillText(`gender: ${Math.round(100 * person.genderProbability)}% ${person.gender}`, person.detection.box.x, person.detection.box.y - 60);
-    ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 42);
-    ctx.fillText(`age: ${Math.round(person.age)} years`, person.detection.box.x, person.detection.box.y - 24);
-    ctx.fillText(`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`, person.detection.box.x, person.detection.box.y - 6);
+    ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 6);
     // draw face points for each face
     ctx.globalAlpha = 0.8;
     ctx.fillStyle = 'lightblue';
@@ -78,11 +142,37 @@ async function detectVideo(video, canvas) {
     .detectAllFaces(video, optionsSSDMobileNet)
     .withFaceLandmarks()
     .withFaceExpressions()
-    // .withFaceDescriptors()
-    .withAgeAndGender()
     .then((result) => {
       const fps = 1000 / (performance.now() - t0);
       drawFaces(canvas, result, fps.toLocaleString());
+      
+      // Game logic
+      if (gameState === 'playing' && result && result.length > 0) {
+        const person = result[0];
+        const expression = Object.entries(person.expressions).sort((a, b) => b[1] - a[1]);
+        const currentExpression = expression[0][0];
+        const probability = expression[0][1];
+        
+        const now = performance.now();
+        if (currentExpression === targetExpression && probability > 0.7 && now - lastMatchTime > 1000) {
+          score++;
+          const scoreEl = document.getElementById('score');
+          if (scoreEl) scoreEl.innerText = score;
+          lastMatchTime = now;
+          pickNewEmoji();
+          
+          // Visual feedback on success
+          const targetEmojiEl = document.getElementById('target-emoji');
+          if (targetEmojiEl) {
+            targetEmojiEl.style.transform = 'scale(1.5)';
+            targetEmojiEl.style.transition = 'transform 0.2s';
+            setTimeout(() => {
+              targetEmojiEl.style.transform = 'scale(1)';
+            }, 200);
+          }
+        }
+      }
+
       requestAnimationFrame(() => detectVideo(video, canvas));
       return true;
     })
@@ -153,12 +243,8 @@ async function setupCamera() {
 
 async function setupFaceAPI() {
   // load face-api models
-  // log('Models loading');
-  // await faceapi.nets.tinyFaceDetector.load(modelPath); // using ssdMobilenetv1
   await faceapi.nets.ssdMobilenetv1.load(modelPath);
-  await faceapi.nets.ageGenderNet.load(modelPath);
   await faceapi.nets.faceLandmark68Net.load(modelPath);
-  await faceapi.nets.faceRecognitionNet.load(modelPath);
   await faceapi.nets.faceExpressionNet.load(modelPath);
   optionsSSDMobileNet = new faceapi.SsdMobilenetv1Options({ minConfidence: minScore, maxResults });
   // check tf engine state
@@ -188,6 +274,12 @@ async function main() {
 
   await setupFaceAPI();
   await setupCamera();
+  
+  // hook up buttons
+  const startBtn = document.getElementById('start-btn');
+  if (startBtn) startBtn.addEventListener('click', startGame);
+  const restartBtn = document.getElementById('restart-btn');
+  if (restartBtn) restartBtn.addEventListener('click', startGame);
 }
 
 // start processing as soon as page is loaded
