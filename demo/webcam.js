@@ -27,8 +27,11 @@ let targetEmoji = '';
 let targetExpression = '';
 let gameInterval;
 let lastMatchTime = 0;
+let lastMatchTime = 0;
 let holdStartTime = 0;
 let comboStreak = 0;
+let wowSessionId = null;
+let wowPaymentInterval = null;
 
 function pickNewEmoji() {
   const emojis = Object.keys(emojiMap);
@@ -65,20 +68,76 @@ async function startGame() {
     }
   }
 
-  score = 0;
-  timeLeft = 30;
-  comboStreak = 0;
-  holdStartTime = 0;
-  
   const startScreen = document.getElementById('start-screen');
-  const gameOverScreen = document.getElementById('game-over-screen');
-  const hud = document.getElementById('hud');
+  const paymentScreen = document.getElementById('payment-screen');
+  if (startScreen) startScreen.style.display = 'none';
+  if (paymentScreen) paymentScreen.style.display = 'block';
+
+  await requestExperienceSession();
+}
+
+async function requestExperienceSession() {
+  const statusEl = document.getElementById('payment-status');
+  const qrContainer = document.getElementById('qrcode-container');
+  if (statusEl) statusEl.innerText = 'Generating payment session...';
+  if (qrContainer) qrContainer.innerHTML = '';
+  
+  try {
+    const response = await fetch('https://now-in-google-backend-1010379975924.asia-south1.run.app/nowingoogle-backend/api/wallet/experience/request', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-version': '2.0.0'
+      },
+      body: JSON.stringify({
+        experience_id: 'emoji_arcade',
+        name: 'Emoji Arcade',
+        amount: 10.0
+      })
+    });
+    const result = await response.json();
+    if (result.status && result.session_id) {
+      wowSessionId = result.session_id;
+      
+      // Render QR Code
+      new QRCode(qrContainer, {
+        text: `wow2026:experience:${wowSessionId}`,
+        width: 160,
+        height: 160
+      });
+      
+      if (statusEl) statusEl.innerText = 'Waiting for payment...';
+      
+      // Start polling
+      wowPaymentInterval = setInterval(() => pollPaymentStatus(wowSessionId), 2000);
+    } else {
+      if (statusEl) statusEl.innerText = 'Failed to create session. Please refresh.';
+    }
+  } catch (error) {
+    if (statusEl) statusEl.innerText = 'API Error. Please refresh.';
+  }
+}
+
+async function pollPaymentStatus(sessionId) {
+  try {
+    const response = await fetch(`https://now-in-google-backend-1010379975924.asia-south1.run.app/nowingoogle-backend/api/wallet/experience/status/${sessionId}`, {
+      headers: { 'x-api-version': '2.0.0' }
+    });
+    const result = await response.json();
+    if (result.status && result.data && result.data.session_status === 'SUCCESS') {
+      clearInterval(wowPaymentInterval);
+      const paymentScreen = document.getElementById('payment-screen');
+      if (paymentScreen) paymentScreen.style.display = 'none';
+      actuallyStartGame();
+    }
+  } catch (err) {
+    console.error('Polling error:', err);
+  }
+}
+
+function actuallyStartGame() {
   const countdownEl = document.getElementById('countdown-overlay');
   
-  if (startScreen) startScreen.style.display = 'none';
-  if (gameOverScreen) gameOverScreen.style.display = 'none';
-  
-  // Show 3-2-1 countdown
   if (countdownEl) {
     countdownEl.style.display = 'flex';
     let count = 3;
@@ -90,15 +149,20 @@ async function startGame() {
       } else {
         clearInterval(countInterval);
         countdownEl.style.display = 'none';
-        actuallyStartGame();
+        beginPlayLoop();
       }
     }, 800);
   } else {
-    actuallyStartGame();
+    beginPlayLoop();
   }
 }
 
-function actuallyStartGame() {
+function beginPlayLoop() {
+  score = 0;
+  timeLeft = 30;
+  comboStreak = 0;
+  holdStartTime = 0;
+  
   gameState = 'playing';
   
   const hud = document.getElementById('hud');
@@ -121,7 +185,7 @@ function actuallyStartGame() {
   }, 1000);
 }
 
-function endGame() {
+async function endGame() {
   gameState = 'gameover';
   clearInterval(gameInterval);
   
@@ -129,10 +193,45 @@ function endGame() {
   const gameOverScreen = document.getElementById('game-over-screen');
   
   if (hud) hud.style.display = 'none';
-  if (gameOverScreen) gameOverScreen.style.display = 'block';
-  
-  const finalScoreEl = document.getElementById('final-score');
-  if (finalScoreEl) finalScoreEl.innerText = score;
+  if (gameOverScreen) {
+    gameOverScreen.style.display = 'block';
+    
+    // Show submitting state
+    const title = gameOverScreen.querySelector('h1');
+    const restartBtn = document.getElementById('restart-btn');
+    
+    title.innerText = "Submitting Score...";
+    if (restartBtn) restartBtn.style.display = 'none';
+    
+    // Submit points
+    if (wowSessionId) {
+      try {
+        await fetch('https://now-in-google-backend-1010379975924.asia-south1.run.app/nowingoogle-backend/api/wallet/experience/complete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-version': '2.0.0'
+          },
+          body: JSON.stringify({
+            session_id: wowSessionId,
+            points: score * 10 // Award 10 points per 1 score
+          })
+        });
+        title.innerText = "Score Submitted!";
+      } catch (err) {
+        console.error(err);
+        title.innerText = "Submission Failed";
+      }
+    }
+    
+    const finalScoreEl = document.getElementById('final-score');
+    if (finalScoreEl) finalScoreEl.innerText = score;
+    
+    setTimeout(() => {
+      title.innerText = "Time's Up!";
+      if (restartBtn) restartBtn.style.display = 'inline-block';
+    }, 2000);
+  }
 }
 
 // helper function to pretty-print json object to string

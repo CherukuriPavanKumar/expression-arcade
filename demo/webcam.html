@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="./webcam.js" type="module"></script>
     <style>
       body { font-family: 'Outfit', sans-serif; background: #0f172a; color: white; margin: 0; overflow: hidden; }
@@ -140,6 +141,12 @@
         font-size: 18px; font-weight: 600; color: #94a3b8;
         background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 999px;
       }
+      
+      #qrcode-container {
+        display: flex; justify-content: center; align-items: center;
+        background: white; padding: 20px; border-radius: 16px;
+        margin: 20px auto; width: 200px; height: 200px;
+      }
     </style>
   </head>
   <body>
@@ -172,6 +179,14 @@
         <h1>Emoji Arcade</h1>
         <p>Match your facial expression to the emoji!</p>
         <button id="start-btn" class="btn">Start Game</button>
+      </div>
+
+      <!-- Payment Screen -->
+      <div id="payment-screen" class="glass-panel menu-screen" style="display: none;">
+        <h1>Scan to Play!</h1>
+        <p>Open your WOW app and scan to pay <strong>10.0 WOW Cash</strong></p>
+        <div id="qrcode-container"></div>
+        <p id="payment-status" style="font-size: 16px; margin-bottom: 0; color: #38bdf8;">Waiting for payment...</p>
       </div>
 
       <!-- Game Over Screen -->
