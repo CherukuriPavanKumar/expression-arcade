@@ -27,7 +27,6 @@ let targetEmoji = '';
 let targetExpression = '';
 let gameInterval;
 let lastMatchTime = 0;
-let lastMatchTime = 0;
 let holdStartTime = 0;
 let comboStreak = 0;
 let wowSessionId = null;
